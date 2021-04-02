@@ -177,7 +177,7 @@ void keyboardUp(unsigned char key, int x, int y){
 }
 
 void drawline(float angle, int iteration, float x, float y){
-    float steps = 0.0f;
+    float steps = 0.0f, stepsize = 0.005f;
     int stepcounter = 1;
     int col = 0;
     float xrp = xp;
@@ -185,21 +185,22 @@ void drawline(float angle, int iteration, float x, float y){
     int roundedxrp = int(round(xrp));
     int roundedyrp = int(round(yrp));
     while(test[roundedyrp][roundedxrp] == 0){
-        steps += 0.01f * pow(1.0033, stepcounter);
-        xrp = findnewx(0.01f * pow(1.0033, stepcounter), angle, xrp);
-        yrp = findnewy(0.01f * pow(1.0033, stepcounter), angle, yrp);
+        stepsize = 0.005f * pow(1.005, stepcounter);
+        steps += stepsize;
+        xrp = findnewx(stepsize, angle, xrp);
+        yrp = findnewy(stepsize, angle, yrp);
         roundedxrp = int(round(xrp));
         roundedyrp = int(round(yrp));
         if(test[roundedyrp][roundedxrp] != 0){
             col = test[roundedyrp][roundedxrp];
         }
-        if(steps >= 20){
+        if(steps >= 25){
             col = 0;
             break;
         }
         stepcounter++;
     }
-    int wallheight = fmin(SCREENH-1, (SCREENH-steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) )) ) )/steps));
+    int wallheight = fmin(SCREENH-1, (SCREENH - steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) )) ) )/steps));
     float colchangefactor = ((20.0 - steps)/20.0);
     for(int y = 0; y < wallheight; y++){
         screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][0] = int(round(((cpal[col] & 0xFF0000) >> 16) * colchangefactor));
