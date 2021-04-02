@@ -27,6 +27,7 @@ float xp = 10.0f;
 float yp = 10.0f;
 float minang = 15.0f;
 float fov = 75.0f;
+bool a,d,w,s,q,e;
 
 unsigned int cpal[8] = {
 0xFF00FF, 0x707075, 0x959295, 0x663300, 0x593000, 0x660000, 0x550000, 0xAAAAAA
@@ -77,8 +78,31 @@ void updateTexture()
 	glEnd();
 }
 
+float findnewmx(float angle, float x){
+    return (x - 0.1*cos(angle * PIRAD));
+}
+float findnewmy(float angle, float y){
+    return (y - 0.1*sin(angle * PIRAD));
+}
+
 void display(){
     glClear(GL_COLOR_BUFFER_BIT);
+    if(a){
+        xp = findnewmx(((fov/2)+minang)+90, xp);
+        yp = findnewmy(((fov/2)+minang)+90, yp);}
+    if(d){
+        xp = findnewmx(((fov/2)+minang)-90, xp);
+        yp = findnewmy(((fov/2)+minang)-90, yp);}
+    if(w){
+        xp = findnewmx(((fov/2)+minang), xp);
+        yp = findnewmy(((fov/2)+minang), yp);}
+    if(s){
+        xp = findnewmx(((fov/2)+minang)+180, xp);
+        yp = findnewmy(((fov/2)+minang)+180, yp);}
+    if(q){
+        minang+=3.0f;}
+    if(e){
+        minang-=3.0f;}
     // Clear screen
 	for(int y = 0; y < SCREENH; y++)
 		for(int x = 0; x < SCREENW; x++)
@@ -98,57 +122,72 @@ void display(){
     glutSwapBuffers();
 }
 
-float findnewx(float angle, float x){
-    return (x - 0.01*cos(angle * PIRAD));
+float findnewx(float stepsize, float angle, float x){
+    return (x - stepsize*cos(angle * PIRAD));
 }
-float findnewy(float angle, float y){
-    return (y - 0.01*sin(angle * PIRAD));
-}
-float findnewmx(float angle, float x){
-    return (x - 0.1*cos(angle * PIRAD));
-}
-float findnewmy(float angle, float y){
-    return (y - 0.1*sin(angle * PIRAD));
+float findnewy(float stepsize, float angle, float y){
+    return (y - stepsize*sin(angle * PIRAD));
 }
 
 void keyboardDown(unsigned char key, int x, int y){
     if(key == 27){   // esc
 		exit(0);
     }
-    else if(key == 'a'){
-        xp = findnewmx(((fov/2)+minang)+90, xp);
-        yp = findnewmy(((fov/2)+minang)+90, yp);}
-    else if(key == 'd'){
-        xp = findnewmx(((fov/2)+minang)-90, xp);
-        yp = findnewmy(((fov/2)+minang)-90, yp);}
-    else if(key == 'w'){
-        xp = findnewmx(((fov/2)+minang), xp);
-        yp = findnewmy(((fov/2)+minang), yp);}
-    else if(key == 's'){
-        xp = findnewmx(((fov/2)+minang)+180, xp);
-        yp = findnewmy(((fov/2)+minang)+180, yp);}
-    else if(key == 'q'){
-        minang+=3.0f;}
-    else if(key == 'e'){
-        minang-=3.0f;}
+    if(key == 'a'){
+        a = true;
+    }
+    if(key == 'd'){
+        d = true;
+    }
+    if(key == 'w'){
+        w = true;
+    }
+    if(key == 's'){
+        s = true;
+    }
+    if(key == 'q'){
+        q = true;
+    }
+    if(key == 'e'){
+        e = true;
+    }
     return;
 }
 
 void keyboardUp(unsigned char key, int x, int y){
+    if(key == 'a'){
+        a = false;
+    }
+    if(key == 'd'){
+        d = false;
+    }
+    if(key == 'w'){
+        w = false;
+    }
+    if(key == 's'){
+        s = false;
+    }
+    if(key == 'q'){
+        q = false;
+    }
+    if(key == 'e'){
+        e = false;
+    }
     return;
 }
 
 void drawline(float angle, int iteration, float x, float y){
     float steps = 0.0f;
+    int stepcounter = 1;
     int col = 0;
     float xrp = xp;
     float yrp = yp;
     int roundedxrp = int(round(xrp));
     int roundedyrp = int(round(yrp));
     while(test[roundedyrp][roundedxrp] == 0){
-        steps += 0.01f;
-        xrp = findnewx(angle, xrp);
-        yrp = findnewy(angle, yrp);
+        steps += 0.01f * pow(1.0033, stepcounter);
+        xrp = findnewx(0.01f * pow(1.0033, stepcounter), angle, xrp);
+        yrp = findnewy(0.01f * pow(1.0033, stepcounter), angle, yrp);
         roundedxrp = int(round(xrp));
         roundedyrp = int(round(yrp));
         if(test[roundedyrp][roundedxrp] != 0){
@@ -158,13 +197,14 @@ void drawline(float angle, int iteration, float x, float y){
             col = 0;
             break;
         }
+        stepcounter++;
     }
-    int wallheight = fmin(SCREENH-1, (SCREENH - steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) )) ) )/steps));
+    int wallheight = fmin(SCREENH-1, (SCREENH-steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) )) ) )/steps));
     float colchangefactor = ((20.0 - steps)/20.0);
     for(int y = 0; y < wallheight; y++){
-        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration][0] = int(round(((cpal[col] & 0xFF0000) >> 16) * colchangefactor));
-        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration][1] = int(round(((cpal[col] & 0x00FF00) >> 8) * colchangefactor));
-        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration][2] = int(round(((cpal[col] & 0x0000FF)) * colchangefactor));
+        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][0] = int(round(((cpal[col] & 0xFF0000) >> 16) * colchangefactor));
+        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][1] = int(round(((cpal[col] & 0x00FF00) >> 8) * colchangefactor));
+        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][2] = int(round(((cpal[col] & 0x0000FF)) * colchangefactor));
     }
 }
 
