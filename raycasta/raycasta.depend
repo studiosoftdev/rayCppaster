@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1617623644 source:c:\users\ryan1\documents\_c++ scripts\raycasta\main.cpp
+1617636000 source:c:\users\ryan1\documents\_c++ scripts\raycasta\main.cpp
 	<GLUT/glut.h>
 	<GL/glut.h>
 	<stdlib.h>
@@ -8,6 +8,8 @@
 	<fstream>
 	<time.h>
 	<cmath>
+	<cstdlib>
+	<pthread.h>
 
 1426350840 c:\program files (x86)\codeblocks\mingw\include\gl\glut.h
 	"freeglut_std.h"
@@ -236,4 +238,48 @@
 1341010376 c:\program files (x86)\codeblocks\mingw\include\time.h
 	<_mingw.h>
 	<stddef.h>
+
+1434920874 c:\program files (x86)\codeblocks\mingw\include\pthread.h
+	<stddef.h>
+	<errno.h>
+	<sys/types.h>
+	<process.h>
+	<limits.h>
+	<signal.h>
+	<sys/timeb.h>
+	"pthread_compat.h"
+	<pthread_unistd.h>
+
+1341010372 c:\program files (x86)\codeblocks\mingw\include\errno.h
+	<_mingw.h>
+
+1341010380 c:\program files (x86)\codeblocks\mingw\include\sys\types.h
+	<_mingw.h>
+	<stddef.h>
+
+1341010374 c:\program files (x86)\codeblocks\mingw\include\process.h
+	<_mingw.h>
+	<sys/types.h>
+	<stdint.h>
+
+1341010376 c:\program files (x86)\codeblocks\mingw\include\stdint.h
+	<stddef.h>
+
+1341010374 c:\program files (x86)\codeblocks\mingw\include\limits.h
+	<_mingw.h>
+
+1341010376 c:\program files (x86)\codeblocks\mingw\include\signal.h
+	<_mingw.h>
+
+1341010380 c:\program files (x86)\codeblocks\mingw\include\sys\timeb.h
+	<_mingw.h>
+	<sys/types.h>
+
+1434920874 c:\program files (x86)\codeblocks\mingw\include\pthread_compat.h
+	"pthread_time.h"
+
+1434920874 c:\program files (x86)\codeblocks\mingw\include\pthread_time.h
+	<sys/timeb.h>
+
+1434920874 c:\program files (x86)\codeblocks\mingw\include\pthread_unistd.h
 
