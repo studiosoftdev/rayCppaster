@@ -11,8 +11,8 @@
 #include <time.h>
 #include <cmath>
 
-#define SCREENW 640 //horizontal resolution
-#define SCREENH 480 //vertical resolution
+#define SCREENW 960 //horizontal resolution
+#define SCREENH 540 //vertical resolution
 #define PI 3.14159265
 #define PIRAD 0.01745329252
 
@@ -30,7 +30,7 @@ float fov = 75.0f;
 bool a,d,w,s,q,e;
 
 unsigned int cpal[8] = {
-0xFF00FF, 0x707075, 0x959295, 0x663300, 0x593000, 0x660000, 0x550000, 0xAAAAAA
+0x7F007F, 0x707075, 0x959295, 0x663300, 0x593000, 0x660000, 0x550000, 0xAAAAAA
 };
 
 void drawline(float angle, int iteration, float x, float y);
@@ -177,7 +177,7 @@ void keyboardUp(unsigned char key, int x, int y){
 }
 
 void drawline(float angle, int iteration, float x, float y){
-    float steps = 0.0f, stepsize = 0.005f;
+    float steps = 0.0f, stepsize = 0.0005f;
     int stepcounter = 1;
     int col = 0;
     float xrp = xp;
@@ -185,7 +185,7 @@ void drawline(float angle, int iteration, float x, float y){
     int roundedxrp = int(round(xrp));
     int roundedyrp = int(round(yrp));
     while(test[roundedyrp][roundedxrp] == 0){
-        stepsize = 0.005f * pow(1.005, stepcounter);
+        stepsize = 0.0005f * pow(1.01, stepcounter);
         steps += stepsize;
         xrp = findnewx(stepsize, angle, xrp);
         yrp = findnewy(stepsize, angle, yrp);
@@ -200,7 +200,7 @@ void drawline(float angle, int iteration, float x, float y){
         }
         stepcounter++;
     }
-    int wallheight = fmin(SCREENH-1, (SCREENH - steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) )) ) )/steps));
+    int wallheight = fmin(SCREENH, 2*(SCREENH - steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / (sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) ))) ) )/steps));
     float colchangefactor = ((20.0 - steps)/20.0);
     for(int y = 0; y < wallheight; y++){
         screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][0] = int(round(((cpal[col] & 0xFF0000) >> 16) * colchangefactor));
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
     cout << hex << ((cpal[1] & 0x00FF00) >> 8) << endl;
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(SCREENW * 1,SCREENH * 1);
+    glutInitWindowSize(SCREENW,SCREENH);
     glutInitWindowPosition(640,300);
     glutCreateWindow("Raycasting Game");
     glutDisplayFunc(display);
@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
     //glutOverlayDisplayFunc(display);
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    gluOrtho2D( 0.0, 640.0, 480.0, 0.0 );
+    gluOrtho2D( 0.0, double(SCREENW), double(SCREENH), 0.0 );
 
     setupTexture();
 
