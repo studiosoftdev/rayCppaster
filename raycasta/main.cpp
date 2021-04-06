@@ -12,6 +12,9 @@
 #include <cmath>
 #include <cstdlib> //is this necessary?
 #include <pthread.h> //basic POSIX threading because this will be useful for C AFAIK.
+#include <chrono> //benchmark
+#include <sys/types.h>
+#include <unistd.h>
 
 #define SCREENW 960 //horizontal resolution
 #define SCREENH 540 //vertical resolution
@@ -25,80 +28,67 @@ void updateTexture();
 
 unsigned __int8 screenData[SCREENH][SCREENW][3];
 unsigned __int8 test[15][15];
-int nT = 1; //number of threads
+int nT = 10; //number of threads
 float xp = 10.0f;
 float yp = 10.0f;
 float minang = 15.0f;
 float fov = 75.0f;
-bool a,d,w,s,q,e;
+bool a,d,w,s,q,e,esc;
 
 unsigned int cpal[8] = {
 0x7F007F, 0x707075, 0x959235, 0x663300, 0x593000, 0x660000, 0x550000, 0xAAAAAA
 };
 
+using unit_t = chrono::milliseconds;
+
 
 struct drawlinethreaddata {
-    float angle;
     int iteration;
     int itermax;
-    int tID;
-    float xrp;
-    float yrp;
-    int roundedxrp;
-    int roundedyrp;
-    float stepsize;
-    int stepcounter;
-    float steps;
-    int col;
-    int wallheight;
-    float colchangefactor;
-    int i;
-    int y;
 };
 
 
 void drawline(float angle, int iteration, float x, float y);
 
 
-
 void *testf (void *thrdData){
     struct drawlinethreaddata *data;
     data = (struct drawlinethreaddata *) thrdData;
-    cout << "reached testf on thread " << data->tID << endl;
-    cout << "data spew (a, im, i): " << float(data->angle) << " " << int(data->iteration) << " " << int(data->itermax) << endl;
+    //cout << "reached testf on thread " << data->tID << endl;
+    //cout << "data spew (a, im, i): " << float(data->angle) << " " << int(data->iteration) << " " << int(data->itermax) << endl;
     //drawline code, slightly modified to get rid of any of my function calls
-    for(data->i = data->iteration; data->i < data->itermax; data->i++){
-        data->angle = (data->i*fov/SCREENW)+minang;
-        data->steps = 0.0f;
-        data->stepsize = 0.0005f;
-        data->stepcounter = 1;
-        data->col = 0;
-        //data->xrp = xp;
-        //data->yrp = yp;
-        data->roundedxrp = int(round(data->xrp));
-        data->roundedyrp = int(round(data->yrp));
-        while(test[data->roundedyrp][data->roundedxrp] == 0){
-            data->stepsize = 0.0005f * pow(1.01, data->stepcounter);
-            data->steps += data->stepsize;
-            data->xrp = data->xrp - (data->stepsize*cos(data->angle*PIRAD));
-            data->yrp = data->yrp - (data->stepsize*sin(data->angle*PIRAD));
-            data->roundedxrp = int(round(data->xrp));
-            data->roundedyrp = int(round(data->yrp));
-            if(test[data->roundedyrp][data->roundedxrp] != 0){
-                data->col = test[data->roundedyrp][data->roundedxrp];
+    for(int i = data->iteration; i < data->itermax; i+=nT){
+        float angle = (i*fov/SCREENW)+minang;
+        float steps = 0.0f;
+        float stepsize = 0.0005f;
+        int stepcounter = 1;
+        int col = 0;
+        float xrp = xp;
+        float yrp = yp;
+        int roundedxrp = int(round(xrp));
+        int roundedyrp = int(round(yrp));
+        while(test[roundedyrp][roundedxrp] == 0){
+            stepsize = 0.005f * pow(1.005, stepcounter);
+            steps += stepsize;
+            xrp = xrp - (stepsize*cos(angle*PIRAD));
+            yrp = yrp - (stepsize*sin(angle*PIRAD));
+            roundedxrp = int(round(xrp));
+            roundedyrp = int(round(yrp));
+            if(test[roundedyrp][roundedxrp] != 0){
+                col = test[roundedyrp][roundedxrp];
             }
-            if(data->steps >= 25){
-                data->col = 0;
+            if(steps >= 25){
+                col = 0;
                 break;
             }
-            data->stepcounter++;
+            stepcounter++;
         }
-        data->wallheight = fmin(SCREENH, 2*(SCREENH - data->steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / (sin(PIRAD*(180 - ((minang+fov)-data->angle) - (0.5*(180-fov)) ))) ) )/data->steps));
-        data->colchangefactor = ((20.0 - data->steps)/20.0);
-        for(data->y = 0; data->y < data->wallheight; data->y++){
-            screenData[data->y + ((SCREENH/2) - int(round(data->wallheight/2)))][SCREENW - data->iteration-1][0] = int(round(((cpal[data->col] & 0xFF0000) >> 16) * data->colchangefactor));
-            screenData[data->y + ((SCREENH/2) - int(round(data->wallheight/2)))][SCREENW - data->iteration-1][1] = int(round(((cpal[data->col] & 0x00FF00) >> 8) * data->colchangefactor));
-            screenData[data->y + ((SCREENH/2) - int(round(data->wallheight/2)))][SCREENW - data->iteration-1][2] = int(round(((cpal[data->col] & 0x0000FF)) * data->colchangefactor));
+        float wallheight = fmin(SCREENH, 2*(SCREENH - steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / (sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) ))) ) )/steps));
+        float colchangefactor = ((20.0f - steps)/20.0f);
+        for(int y = 0; y < wallheight; y++){
+            screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - (i)-1][0] = int(round(((cpal[col] & 0xFF0000) >> 16) * colchangefactor));
+            screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - (i)-1][1] = int(round(((cpal[col] & 0x00FF00) >> 8) * colchangefactor));
+            screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - (i)-1][2] = int(round(((cpal[col] & 0x0000FF)) * colchangefactor));
         }
     }
     pthread_exit(NULL);
@@ -157,6 +147,7 @@ float findnewmy(float angle, float y){
 }
 
 void display(){
+    auto start = chrono::steady_clock::now();
     glClear(GL_COLOR_BUFFER_BIT);
     if(a){
         xp = findnewmx(((fov/2)+minang)+90, xp);
@@ -173,9 +164,12 @@ void display(){
     if(q){
         minang+=3.0f;}
     if(e){
+    if(esc){
+        return;
+    }
         minang-=3.0f;}
     // Clear screen
-	for(int y = 0; y < SCREENH; y++)
+	for(int y = 0; y < SCREENH/2; y++)
 		for(int x = 0; x < SCREENW; x++)
 			screenData[y][x][0] = screenData[y][x][1] = screenData[y][x][2] = 50;
     //bottom half of screen blank tex (floor)
@@ -188,35 +182,23 @@ void display(){
     }
 
 
-    pthread_t threads[2];
+    pthread_t threads[nT];
     int rc, i;
-    struct drawlinethreaddata td[2];
-    for(i = 0; i < 2; i++){
-        cout << "display() : creating thread, " << i << endl;
-        td[i].angle = minang+(fov/2);
-        td[i].iteration = i*(SCREENW/2);
-        td[i].itermax = (i+1)*(SCREENW/2);
-        td[i].tID = i;
-        td[i].xrp = xp;
-        td[i].yrp = yp;
-        td[i].roundedxrp = int(round(td[i].xrp));
-        td[i].roundedyrp = int(round(td[i].yrp));
-        td[i].stepsize = 0.005f;
-        td[i].stepcounter = 1;
-        td[i].steps = 0.005f;
-        td[i].col = 0;
-        td[i].wallheight = 0;
-        td[i].colchangefactor = 0.0f;
-        td[i].i = 0;
-        td[i].y = 0;
+    struct drawlinethreaddata td[nT];
+    for(i = 0; i < nT; i++){
+        //cout << "display() : creating thread, " << i << endl;
+        td[i].iteration = i;
+        td[i].itermax = SCREENW-1;
         rc = pthread_create(&threads[i], NULL, testf, (void *)&td[i]);
-        pthread_join(threads[i], NULL);
         if(rc) {
-            cout << "Error: unable to create thread, " << rc << endl;
+            //cout << "Error: unable to create thread, " << rc << endl;
             exit(-1);
         }
     }
-    pthread_exit(NULL);
+    for(i = 0; i < nT; i++){
+        pthread_join(threads[i], NULL);
+    }
+    //pthread_exit(NULL);
 
 
     //for(int i = 0; i < SCREENW; i++){
@@ -224,6 +206,13 @@ void display(){
     //}
     updateTexture();
     glutSwapBuffers();
+
+    auto end2 = chrono::steady_clock::now();
+    auto duration = chrono::duration_cast<unit_t>(end2-start).count();
+    fstream ftfile;
+    ftfile.open("ft.txt",ios::app);
+    ftfile << (int)duration << "\n";
+    ftfile.close();
 }
 
 float findnewx(float stepsize, float angle, float x){
@@ -235,7 +224,7 @@ float findnewy(float stepsize, float angle, float y){
 
 void keyboardDown(unsigned char key, int x, int y){
     if(key == 27){   // esc
-		exit(0);
+		esc = true;
     }
     if(key == 'a'){
         a = true;
@@ -280,44 +269,14 @@ void keyboardUp(unsigned char key, int x, int y){
     return;
 }
 
-void drawline(float angle, int iteration, float x, float y){
-    float steps = 0.0f, stepsize = 0.0005f;
-    int stepcounter = 1;
-    int col = 0;
-    float xrp = xp;
-    float yrp = yp;
-    int roundedxrp = int(round(xrp));
-    int roundedyrp = int(round(yrp));
-    while(test[roundedyrp][roundedxrp] == 0){
-        stepsize = 0.0005f * pow(1.01, stepcounter);
-        steps += stepsize;
-        xrp = findnewx(stepsize, angle, xrp);
-        yrp = findnewy(stepsize, angle, yrp);
-        roundedxrp = int(round(xrp));
-        roundedyrp = int(round(yrp));
-        if(test[roundedyrp][roundedxrp] != 0){
-            col = test[roundedyrp][roundedxrp];
-        }
-        if(steps >= 25){
-            col = 0;
-            break;
-        }
-        stepcounter++;
-    }
-    int wallheight = fmin(SCREENH, 2*(SCREENH - steps) * ((((sin(PIRAD*0.5*(180-fov)) ) / (sin(PIRAD*(180 - ((minang+fov)-angle) - (0.5*(180-fov)) ))) ) )/steps));
-    float colchangefactor = ((20.0 - steps)/20.0);
-    for(int y = 0; y < wallheight; y++){
-        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][0] = int(round(((cpal[col] & 0xFF0000) >> 16) * colchangefactor));
-        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][1] = int(round(((cpal[col] & 0x00FF00) >> 8) * colchangefactor));
-        screenData[y + ((SCREENH/2) - int(round(wallheight/2)))][SCREENW - iteration-1][2] = int(round(((cpal[col] & 0x0000FF)) * colchangefactor));
-    }
-}
-
 
 /* Program entry point */
 
 int main(int argc, char *argv[])
 {
+    fstream ftfile;
+    ftfile.open("ft.txt",ios::out);
+    ftfile.close();
     cout << hex << ((cpal[1] & 0x00FF00) >> 8) << endl;
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
