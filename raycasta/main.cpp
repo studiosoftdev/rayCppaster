@@ -28,7 +28,8 @@ void updateTexture();
 
 unsigned __int8 screenData[SCREENH][SCREENW][3];
 unsigned __int8 test[15][15];
-int nT = 10; //number of threads
+int nT = 8; //number of threads
+int fc = 0; //frame counter, measure 0..214 for 215 frames.
 float xp = 10.0f;
 float yp = 10.0f;
 float minang = 15.0f;
@@ -54,8 +55,6 @@ void drawline(float angle, int iteration, float x, float y);
 void *testf (void *thrdData){
     struct drawlinethreaddata *data;
     data = (struct drawlinethreaddata *) thrdData;
-    //cout << "reached testf on thread " << data->tID << endl;
-    //cout << "data spew (a, im, i): " << float(data->angle) << " " << int(data->iteration) << " " << int(data->itermax) << endl;
     //drawline code, slightly modified to get rid of any of my function calls
     for(int i = data->iteration; i < data->itermax; i+=nT){
         float angle = (i*fov/SCREENW)+minang;
@@ -147,27 +146,14 @@ float findnewmy(float angle, float y){
 }
 
 void display(){
+    if(fc > 400){
+        exit(0);
+    }
     auto start = chrono::steady_clock::now();
     glClear(GL_COLOR_BUFFER_BIT);
-    if(a){
-        xp = findnewmx(((fov/2)+minang)+90, xp);
-        yp = findnewmy(((fov/2)+minang)+90, yp);}
-    if(d){
-        xp = findnewmx(((fov/2)+minang)-90, xp);
-        yp = findnewmy(((fov/2)+minang)-90, yp);}
-    if(w){
-        xp = findnewmx(((fov/2)+minang), xp);
-        yp = findnewmy(((fov/2)+minang), yp);}
-    if(s){
-        xp = findnewmx(((fov/2)+minang)+180, xp);
-        yp = findnewmy(((fov/2)+minang)+180, yp);}
-    if(q){
-        minang+=3.0f;}
-    if(e){
-    if(esc){
-        return;
-    }
-        minang-=3.0f;}
+    xp = findnewmx(((fov/2)+minang)-90, xp);
+    yp = findnewmy(((fov/2)+minang)-90, yp);//}
+    minang+=2.0f;//}
     // Clear screen
 	for(int y = 0; y < SCREENH/2; y++)
 		for(int x = 0; x < SCREENW; x++)
@@ -186,24 +172,17 @@ void display(){
     int rc, i;
     struct drawlinethreaddata td[nT];
     for(i = 0; i < nT; i++){
-        //cout << "display() : creating thread, " << i << endl;
         td[i].iteration = i;
         td[i].itermax = SCREENW-1;
         rc = pthread_create(&threads[i], NULL, testf, (void *)&td[i]);
         if(rc) {
-            //cout << "Error: unable to create thread, " << rc << endl;
             exit(-1);
         }
     }
     for(i = 0; i < nT; i++){
         pthread_join(threads[i], NULL);
     }
-    //pthread_exit(NULL);
 
-
-    //for(int i = 0; i < SCREENW; i++){
-        //drawline(i*(fov/SCREENW) + minang, i, xp, yp);
-    //}
     updateTexture();
     glutSwapBuffers();
 
@@ -213,6 +192,7 @@ void display(){
     ftfile.open("ft.txt",ios::app);
     ftfile << (int)duration << "\n";
     ftfile.close();
+    fc++;
 }
 
 float findnewx(float stepsize, float angle, float x){
@@ -223,49 +203,10 @@ float findnewy(float stepsize, float angle, float y){
 }
 
 void keyboardDown(unsigned char key, int x, int y){
-    if(key == 27){   // esc
-		esc = true;
-    }
-    if(key == 'a'){
-        a = true;
-    }
-    if(key == 'd'){
-        d = true;
-    }
-    if(key == 'w'){
-        w = true;
-    }
-    if(key == 's'){
-        s = true;
-    }
-    if(key == 'q'){
-        q = true;
-    }
-    if(key == 'e'){
-        e = true;
-    }
     return;
 }
 
 void keyboardUp(unsigned char key, int x, int y){
-    if(key == 'a'){
-        a = false;
-    }
-    if(key == 'd'){
-        d = false;
-    }
-    if(key == 'w'){
-        w = false;
-    }
-    if(key == 's'){
-        s = false;
-    }
-    if(key == 'q'){
-        q = false;
-    }
-    if(key == 'e'){
-        e = false;
-    }
     return;
 }
 
@@ -274,10 +215,14 @@ void keyboardUp(unsigned char key, int x, int y){
 
 int main(int argc, char *argv[])
 {
+    if(argc > 1){
+        nT = stoi(argv[1]);
+    }
+    else{nT = 1;}
+    cout << nT;
     fstream ftfile;
     ftfile.open("ft.txt",ios::out);
     ftfile.close();
-    cout << hex << ((cpal[1] & 0x00FF00) >> 8) << endl;
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowSize(SCREENW,SCREENH);
